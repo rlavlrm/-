@@ -19,6 +19,27 @@ class _CalculatorAppState extends State {
       if (txt == 'C') {
         _expression = '';
         _result = '';
+      } else if (txt == 'CE') {
+        if (_expression.isNotEmpty) {
+          int lastOpIndex = _expression.lastIndexOf(RegExp(r'[+\-×÷%]'));
+          if (lastOpIndex != -1) {
+            _expression = _expression.substring(0, lastOpIndex + 1);
+          } else {
+            _expression = '';
+          }
+        }
+      } else if (txt == '⌫') {
+        if (_expression.isNotEmpty) {
+          _expression = _expression.substring(0, _expression.length - 1);
+        }
+      } else if (txt == '+/-') {
+        if (_expression.isNotEmpty) {
+          if (_expression.startsWith('-')) {
+            _expression = _expression.substring(1);
+          } else {
+            _expression = '-$_expression';
+          }
+        }
       } else if (txt == '=') {
         if (_expression.isNotEmpty) {
           _calculateResult();
@@ -31,7 +52,7 @@ class _CalculatorAppState extends State {
 
   void _calculateResult() {
     try {
-      String parsed = _expression.replaceAll('×', '*').replaceAll('÷', '/');
+      String parsed = _expression.replaceAll('×', '*').replaceAll('÷', '/').replaceAll('%', '/100');
       List tokens = [];
       String currentNum = '';
       
@@ -78,6 +99,15 @@ class _CalculatorAppState extends State {
     final opBtnBg = _isDarkMode ? Colors.white : Colors.black;
     final opBtnText = _isDarkMode ? Colors.black : Colors.white;
 
+    // 요청하신 위치 조건에 완벽히 맞춘 키패드 데이터
+    final keyLayout = [
+      ['C', 'CE', '%', '⌫'],       // C 맨 왼쪽, 백스페이스 맨 오른쪽
+      ['7', '8', '9', '÷'],
+      ['4', '5', '6', '×'],
+      ['1', '2', '3', '-'],
+      ['.', '0', '+/-', '+'],       // 0은 2 아래, +/-는 3 아래 위치
+    ];
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
@@ -98,6 +128,7 @@ class _CalculatorAppState extends State {
         body: SafeArea(
           child: Column(
             children: [
+              // 1. 수식/결과 출력 영역
               Expanded(
                 child: Container(
                   alignment: Alignment.bottomRight,
@@ -133,24 +164,20 @@ class _CalculatorAppState extends State {
                 ),
               ),
               const Divider(height: 1),
-              const SizedBox(height: 12),
-              // 키패드 배치 변경 (= 버튼을 가장 오른쪽 아래로 이동)
-              ...[
-                ['7', '8', '9', '÷'],
-                ['4', '5', '6', '×'],
-                ['1', '2', '3', '-'],
-                ['C', '0', '+', '='],
-              ].map((row) => Row(
+              const SizedBox(height: 8),
+              
+              // 2. 키패드 영역
+              ...keyLayout.map((row) => Row(
                 children: row.map((btnTxt) {
-                  bool isOp = ['+', '-', '×', '÷', '='].contains(btnTxt);
+                  bool isOp = ['+', '-', '×', '÷', '%', 'C', 'CE', '⌫', '+/-'].contains(btnTxt);
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.all(6.0),
+                      padding: const EdgeInsets.all(4.0),
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isOp ? opBtnBg : numBtnBg,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -159,7 +186,7 @@ class _CalculatorAppState extends State {
                         child: Text(
                           btnTxt,
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: isOp ? opBtnText : numBtnText,
                           ),
@@ -169,7 +196,34 @@ class _CalculatorAppState extends State {
                   );
                 }).toList(),
               )),
-              const SizedBox(height: 12),
+
+              // 3. 맨 밑 하단 독채 = 버튼
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: opBtnBg,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () => _onPressed('='),
+                    child: Text(
+                      '=',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: opBtnText,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
             ],
           ),
         ),

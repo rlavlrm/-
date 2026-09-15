@@ -1,0 +1,179 @@
+import 'package:flutter/material.dart';
+
+void main() => runApp(const CalculatorApp());
+
+class CalculatorApp extends StatefulWidget {
+  const CalculatorApp({super.key});
+
+  @override
+  State createState() => _CalculatorAppState();
+}
+
+class _CalculatorAppState extends State {
+  bool _isDarkMode = true;
+  String _expression = '';
+  String _result = '';
+
+  void _onPressed(String txt) {
+    setState(() {
+      if (txt == 'C') {
+        _expression = '';
+        _result = '';
+      } else if (txt == '=') {
+        if (_expression.isNotEmpty) {
+          _calculateResult();
+        }
+      } else {
+        _expression += txt;
+      }
+    });
+  }
+
+  void _calculateResult() {
+    try {
+      String parsed = _expression.replaceAll('×', '*').replaceAll('÷', '/');
+      List tokens = [];
+      String currentNum = '';
+      
+      for (int i = 0; i < parsed.length; i++) {
+        String char = parsed[i];
+        if (['+', '-', '*', '/'].contains(char)) {
+          if (currentNum.isNotEmpty) {
+            tokens.add(currentNum);
+            currentNum = '';
+          }
+          tokens.add(char);
+        } else {
+          currentNum += char;
+        }
+      }
+      if (currentNum.isNotEmpty) tokens.add(currentNum);
+
+      if (tokens.isEmpty) return;
+
+      double total = double.parse(tokens[0]);
+      for (int i = 1; i < tokens.length - 1; i += 2) {
+        String op = tokens[i];
+        double nextNum = double.parse(tokens[i + 1]);
+        if (op == '+') total += nextNum;
+        if (op == '-') total -= nextNum;
+        if (op == '*') total *= nextNum;
+        if (op == '/') total = nextNum != 0 ? total / nextNum : 0;
+      }
+
+      _result = total % 1 == 0 ? total.toInt().toString() : total.toString();
+    } catch (e) {
+      _result = 'Error';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = _isDarkMode ? Colors.black : Colors.white;
+    final textColor = _isDarkMode ? Colors.white : Colors.black;
+    
+    final numBtnBg = _isDarkMode ? Colors.grey[900]! : Colors.grey[200]!;
+    final numBtnText = textColor;
+
+    final opBtnBg = _isDarkMode ? Colors.white : Colors.black;
+    final opBtnText = _isDarkMode ? Colors.black : Colors.white;
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          backgroundColor: bgColor,
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: Icon(
+                _isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
+                color: textColor,
+              ),
+              onPressed: () => setState(() => _isDarkMode = !_isDarkMode),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  alignment: Alignment.bottomRight,
+                  padding: const EdgeInsets.all(24),
+                  child: SingleChildScrollView(
+                    reverse: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          _expression.isEmpty ? '0' : _expression,
+                          style: TextStyle(
+                            fontSize: 36,
+                            color: textColor,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        if (_result.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            '= $_result',
+                            style: TextStyle(
+                              fontSize: 44,
+                              color: textColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              // 키패드 배치 변경 (= 버튼을 가장 오른쪽 아래로 이동)
+              ...[
+                ['7', '8', '9', '÷'],
+                ['4', '5', '6', '×'],
+                ['1', '2', '3', '-'],
+                ['C', '0', '+', '='],
+              ].map((row) => Row(
+                children: row.map((btnTxt) {
+                  bool isOp = ['+', '-', '×', '÷', '='].contains(btnTxt);
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isOp ? opBtnBg : numBtnBg,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () => _onPressed(btnTxt),
+                        child: Text(
+                          btnTxt,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: isOp ? opBtnText : numBtnText,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              )),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
